@@ -26,14 +26,14 @@ public class AdamApplicationContext {
             String beanName = entry.getKey();
             BeanDefiniton beanDefiniton = entry.getValue();
             if (beanDefiniton.getScope().equals("singleton")) {
-                Object bean = creatBean(beanDefiniton); // singleton bean
+                Object bean = creatBean(beanName, beanDefiniton); // singleton bean
                 singletonObjects.put(beanName, bean); //put the singleton bean into singleton pool
             }
         }
 
     }
 
-    private Object creatBean(BeanDefiniton beanDefiniton) {
+    private Object creatBean(String beanName, BeanDefiniton beanDefiniton) {
         Class clazz = beanDefiniton.getClazz();
         try {
             Object instance = clazz.getDeclaredConstructor().newInstance();
@@ -44,6 +44,19 @@ public class AdamApplicationContext {
                     Object bean = getBean(declaredField.getName());
                     declaredField.setAccessible(true);
                     declaredField.set(instance, bean);
+                }
+            }
+            //Aware回调
+            if (instance instanceof BeanNameAware) {
+                ((BeanNameAware) instance).setBeanName(beanName);
+            }
+
+            //初始化
+            if ((instance instanceof InitializingBean)) {
+                try {
+                    ((InitializingBean) instance).afterPropertiesSet();
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             }
 
@@ -111,7 +124,7 @@ public class AdamApplicationContext {
                 return o;
             } else {
                 //create bean object
-                Object bean = creatBean(beanDefiniton);
+                Object bean = creatBean(beanName, beanDefiniton);
                 return bean;
             }
         } else {
